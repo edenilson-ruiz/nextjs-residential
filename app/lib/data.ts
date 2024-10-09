@@ -5,21 +5,25 @@ import {
   InvoiceForm,
   InvoicesTable,
   LatestInvoiceRaw,
+  User,
   Revenue,
+  PropertyField,
+  PropertiesTableType
 } from './definitions';
 import { formatCurrency } from './utils';
+import { unstable_noStore as noStore } from 'next/cache';
 
 export async function fetchRevenue() {
   try {
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
 
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     const data = await sql<Revenue>`SELECT * FROM revenue`;
 
-    // console.log('Data fetch completed after 3 seconds.');
+    console.log('Data fetch completed after 3 seconds.');
 
     return data.rows;
   } catch (error) {
@@ -183,7 +187,12 @@ export async function fetchCustomers() {
   }
 }
 
-export async function fetchFilteredCustomers(query: string) {
+export async function fetchFilteredCustomers(
+  query: string,
+  currentPage: number,
+) {
+  noStore();
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
   try {
     const data = await sql<CustomersTableType>`
 		SELECT
@@ -201,6 +210,7 @@ export async function fetchFilteredCustomers(query: string) {
         customers.email ILIKE ${`%${query}%`}
 		GROUP BY customers.id, customers.name, customers.email, customers.image_url
 		ORDER BY customers.name ASC
+    LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
 	  `;
 
     const customers = data.rows.map((customer) => ({
@@ -213,5 +223,104 @@ export async function fetchFilteredCustomers(query: string) {
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch customer table.');
+  }
+}
+
+
+export async function fetchCustomersPages(query: string) {
+  noStore();
+  try {
+    const count = await sql`SELECT COUNT(*)
+    FROM customers
+    WHERE 
+      customers.name ILIKE ${`%${query}%`} OR
+      customers.email ILIKE ${`%${query}%`}`;
+
+    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of customers.');
+  }
+}
+
+export async function getUser(email: string) {
+  try {
+    const user = await sql`SELECT * FROM users WHERE email=${email}`;
+    return user.rows[0] as User;
+  } catch (error) {
+    console.error('Failed to fetch user:', error);
+    throw new Error('Failed to fetch user.');
+  }
+}
+
+
+export async function fetchProperties() {
+  try {
+    const data = await sql<PropertyField>`
+      SELECT
+        a.id,
+        a.name,
+        a.code,
+        b.name residential_name
+      FROM properties a
+        JOIN residentials b on b.id = a.residential_id
+      ORDER BY a.name ASC
+    `;
+
+    const properties = data.rows;
+    return properties;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all properties.');
+  }
+}
+
+
+export async function fetchPropertiesPages(query: string) {
+  noStore();
+  try {
+    const count = await sql`SELECT COUNT(*)
+    FROM properties
+    WHERE 
+      properties.name ILIKE ${`%${query}%`}`;
+
+    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
+    return totalPages;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of properties.');
+  }
+}
+
+export async function fetchFilteredProperties(
+  query: string,
+  currentPage: number,
+) {
+  noStore();
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+  try {
+    const data = await sql<PropertiesTableType>`
+		SELECT
+		  a.id,
+		  a.name,
+		  a.code,
+		  b.name residential_name
+		FROM properties a
+		 JOIN residentials b ON b.id = a.residential_id
+		WHERE
+		  a.name ILIKE ${`%${query}%`}		
+		ORDER BY a.name ASC
+    LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+	  `;
+
+    const properties = data.rows.map((property) => ({
+      ...property,      
+    }));
+
+    return properties;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch property table.');
   }
 }

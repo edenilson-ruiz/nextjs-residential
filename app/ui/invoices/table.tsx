@@ -20,13 +20,13 @@ export default async function InvoicesTable({
           <div className="md:hidden">
             {invoices?.map((invoice) => (
               <div
-                key={invoice.id}
+                key={invoice.id + 10}
                 className="mb-2 w-full rounded-md bg-white p-4"
               >
                 <div className="flex items-center justify-between border-b pb-4">
                   <div>
                     <div className="mb-2 flex items-center">
-                      <Image
+                      <Image                        
                         src={invoice.image_url}
                         className="mr-2 rounded-full"
                         width={28}
@@ -80,12 +80,12 @@ export default async function InvoicesTable({
             <tbody className="bg-white">
               {invoices?.map((invoice) => (
                 <tr
-                  key={invoice.id}
+                  key={invoice.id + 20}
                   className="w-full border-b py-3 text-sm last-of-type:border-none [&:first-child>td:first-child]:rounded-tl-lg [&:first-child>td:last-child]:rounded-tr-lg [&:last-child>td:first-child]:rounded-bl-lg [&:last-child>td:last-child]:rounded-br-lg"
                 >
                   <td className="whitespace-nowrap py-3 pl-6 pr-3">
                     <div className="flex items-center gap-3">
-                      <Image
+                      <Image                        
                         src={invoice.image_url}
                         className="rounded-full"
                         width={28}
